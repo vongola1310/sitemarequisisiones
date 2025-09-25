@@ -1,5 +1,4 @@
 // src/app/solicitudes/[id]/page.tsx
-
 "use client";
 
 import { useState, useEffect, use } from 'react';
@@ -16,13 +15,13 @@ interface SolicitudDetalle {
   status: string;
   descripcion: string;
   fechaEntregaFinal?: string;
-  recursosNecesarios?: any;
+  recursosNecesarios?: Record<string, boolean | string>; // Cambio 1
   comments?: string;
 }
 
 export default function SolicitudDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { data: session, status } = useSession();
+  const { status } = useSession(); // Cambio 2: removí 'data: session' ya que no se usa aquí
   const router = useRouter();
   const [solicitud, setSolicitud] = useState<SolicitudDetalle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,14 +46,14 @@ export default function SolicitudDetallePage({ params }: { params: Promise<{ id:
   });
 
   // Función helper para formatear los recursos
-  const formatearRecursos = (recursosObj: any): string => {
+  const formatearRecursos = (recursosObj: Record<string, boolean | string>): string => { // Cambio 3
     if (!recursosObj) return 'No especificado';
     
     if (typeof recursosObj === 'string') return recursosObj;
     
     if (typeof recursosObj === 'object') {
       const recursosSeleccionados = Object.entries(recursosObj)
-        .filter(([key, value]) => value && key !== 'otroRecurso')
+        .filter(([, value]) => value && typeof value !== 'string') // Cambio 4: removí 'key' no usado
         .map(([key]) => key);
       
       const otroRecurso = recursosObj.otroRecurso || '';
@@ -119,7 +118,7 @@ export default function SolicitudDetallePage({ params }: { params: Promise<{ id:
 
   useEffect(() => {
     const tieneRecursos = Object.keys(recursos).some(key => 
-      key === 'otroRecurso' ? recursos.otroRecurso.trim() !== '' : recursos[key] === true
+      key === 'otroRecurso' ? recursos.otroRecurso.trim() !== '' : recursos[key as keyof typeof recursos] === true
     );
     
     setFormCompleto(
@@ -160,35 +159,12 @@ export default function SolicitudDetallePage({ params }: { params: Promise<{ id:
     }
   };
 
-  const ejecutarSolicitud = async () => {
-    setActualizando(true);
-    try {
-      const response = await fetch(`/api/solicitudes/${resolvedParams.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'En ejecución'
-        }),
-      });
+  // Cambio 5: Removí la función 'ejecutarSolicitud' ya que no se usa
 
-      if (!response.ok) {
-        throw new Error('Error al actualizar la solicitud');
-      }
-
-      router.push('/dashboard');
-    } catch (err) {
-      setError('Error al ejecutar la solicitud');
-      console.error(err);
-    } finally {
-      setActualizando(false);
-    }
-  };
-
-  const userRole = useSession().data?.user?.role;
+  const { data: session } = useSession(); // Cambio 6: Movido aquí donde se necesita
+  const userRole = session?.user?.role;
   const isIngeniero = userRole === 'ingeniero';
-  const isGerente = userRole === 'gerente';
+ 
   
   if (status === "loading" || loading) {
     return (

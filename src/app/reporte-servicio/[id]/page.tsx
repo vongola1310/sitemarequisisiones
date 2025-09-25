@@ -13,7 +13,7 @@ interface SolicitudDetalle {
   fechaEntregaFinal?: string;
   proyectoDestino: string;
   areaSolicitante: string;
-  productoSolicitado?: any;
+  productoSolicitado?: Record<string, boolean | string>; // Cambio aquí
   status: string;
   descripcion?: string;
   solicitante?: {

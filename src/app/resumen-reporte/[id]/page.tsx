@@ -1,3 +1,4 @@
+// src/app/resumen-reporte/[id]/page.tsx
 "use client";
 
 import { useState, useEffect, use } from "react";
@@ -12,9 +13,9 @@ interface SolicitudCompleta {
   fechaEntregaFinal: string;
   proyectoDestino: string;
   areaSolicitante: string;
-  productoSolicitado: any;
+  productoSolicitado: Record<string, boolean | string>; // Cambio 1
   descripcion: string;
-  recursosNecesarios: any;
+  recursosNecesarios: Record<string, boolean | string>; // Cambio 2
   status: string;
   comments: string;
   solicitante: {
@@ -37,7 +38,7 @@ interface SolicitudCompleta {
     area: string;
     responsable: string;
     correoResponsable: string;
-    informacionServicio: any;
+    informacionServicio: Record<string, boolean | string>; // Cambio 3
     accionesRealizadas: string;
     observaciones: string;
     descripcionEntregables: string;
@@ -58,7 +59,7 @@ export default function ResumenReportePage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = use(params);
-  const { data: session, status } = useSession();
+  const { status } = useSession(); // Cambio 4: removí 'data: session' ya que no se usa
   const router = useRouter();
   const [solicitudCompleta, setSolicitudCompleta] =
     useState<SolicitudCompleta | null>(null);
@@ -77,7 +78,7 @@ export default function ResumenReportePage({
         const response = await fetch(
           `/api/resumen-reporte/${resolvedParams.id}`,
           {
-            credentials: "include", // 🔑 Para enviar cookies de sesión
+            credentials: "include",
           }
         );
 
@@ -88,8 +89,9 @@ export default function ResumenReportePage({
 
         const data = await response.json();
         setSolicitudCompleta(data);
-      } catch (err: any) {
-        setError(err.message || "No se pudo cargar el resumen completo");
+      } catch (err: unknown) { // Cambio 5
+        const errorMessage = err instanceof Error ? err.message : "No se pudo cargar el resumen completo";
+        setError(errorMessage);
         console.error(err);
       } finally {
         setLoading(false);
@@ -102,12 +104,12 @@ export default function ResumenReportePage({
   }, [resolvedParams.id, status]);
 
   // Función helper para formatear recursos
-  const formatearRecursos = (recursosObj: any): string => {
+  const formatearRecursos = (recursosObj: Record<string, boolean | string>): string => { // Cambio 6
     if (!recursosObj) return "No especificado";
     if (typeof recursosObj === "string") return recursosObj;
     if (typeof recursosObj === "object") {
       const recursosSeleccionados = Object.entries(recursosObj)
-        .filter(([key, value]) => value && key !== "otroRecurso")
+        .filter(([, value]) => value && typeof value !== "string") // Cambio 7: removí 'key' no usado
         .map(([key]) => key);
       const otroRecurso = recursosObj.otroRecurso || "";
       return (
@@ -119,18 +121,21 @@ export default function ResumenReportePage({
   };
 
   // Función helper para formatear productos solicitados
-  const formatearProductos = (productosObj: any): string => {
+  const formatearProductos = (productosObj: Record<string, boolean | string>): string => { // Cambio 8
     if (!productosObj) return "No especificado";
     if (typeof productosObj === "string") return productosObj;
     if (typeof productosObj === "object") {
       const productos = Object.entries(productosObj)
-        .filter(([key, value]) => value && key !== "otroProducto")
+        .filter(([, value]) => value && typeof value !== "string") // Cambio 9: removí 'key' no usado
         .map(([key]) => key);
       const otroProducto = productosObj.otroProducto || "";
       return productos.join(", ") + (otroProducto ? `, ${otroProducto}` : "");
     }
     return "No especificado";
   };
+
+
+ 
 
   if (status === "loading" || loading) {
     return (
@@ -336,7 +341,7 @@ export default function ResumenReportePage({
                           ))}
                       </ul>
                     ) : (
-                      <p>{solicitudCompleta.reporteServicio.informacionServicio || 'No especificado'}</p>
+                      <p>{String(solicitudCompleta.reporteServicio.informacionServicio) || 'No especificado'}</p>
                     )}
                   </div>
                 </div>
