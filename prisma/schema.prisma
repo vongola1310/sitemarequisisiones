@@ -1,0 +1,113 @@
+// schema.prisma
+
+// 1. Configura el proveedor de la base de datos (PostgreSQL) y el conector (Prisma Client)
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 2. Configura el generador del cliente Prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 3. Define tus modelos de datos
+
+/// Modelo para los roles de usuario
+model Role {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  users User[]  // Un rol puede tener muchos usuarios (relación 1 a muchos)
+}
+
+/// Modelo para los usuarios
+model User {
+  id              Int      @id @default(autoincrement())
+  name            String
+  email           String   @unique
+  password        String   // Almacenaremos el hash de la contraseña
+  roleId          Int      // Clave foránea para la relación
+  createdAt       DateTime @default(now())
+
+  // Relación con el modelo Role
+  role            Role     @relation(fields: [roleId], references: [id])
+
+  // Relaciones con los formularios
+  // Un usuario puede ser el solicitante de muchas solicitudes de proyecto
+  solicitudesProyecto SolicitudProyecto[] @relation("Solicitante")
+
+  // Un usuario puede ser el ingeniero de muchas solicitudes de proyecto
+  ingenieroSolicitudes SolicitudProyecto[] @relation("Ingeniero")
+
+  // Un usuario puede ser el gerente de muchas solicitudes de proyecto
+  gerenteSolicitudes SolicitudProyecto[] @relation("Gerente")
+  
+  // Un usuario puede ser el usuario de muchos reportes de servicio
+  usuarioReportes ReporteServicio[] @relation("UsuarioReporte")
+
+  // Un usuario puede ser el ingeniero de muchos reportes de servicio
+  ingenieroReportes ReporteServicio[] @relation("IngenieroReporte")
+}
+
+/// Modelo para el formulario de Solicitud de Proyecto
+model SolicitudProyecto {
+  id                      Int      @id @default(autoincrement())
+  folio                   String   @unique
+  fechaSolicitud          DateTime
+  fechaEntregaFinal       DateTime?
+  proyectoDestino         String
+  areaSolicitante         String
+  
+  productoSolicitado      Json?
+  descripcion             String
+  recursosNecesarios      Json?
+
+  // Relaciones para las firmas
+  solicitanteId           Int
+  ingenieroId             Int
+  gerenteId               Int?
+
+  solicitante             User     @relation("Solicitante", fields: [solicitanteId], references: [id])
+  ingeniero               User     @relation("Ingeniero", fields: [ingenieroId], references: [id])
+  gerente                 User?    @relation("Gerente", fields: [gerenteId], references: [id])
+
+  // Relación para el reporte de servicio asociado
+  reporteServicio         ReporteServicio?
+
+  status String @default("Pendiente")
+  comments                String?
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+/// Modelo para el formulario de Reporte de Servicio
+model ReporteServicio {
+  id                       Int      @id @default(autoincrement())
+  folioSolicitud           String   @unique
+  fechaEntrega             DateTime
+  proyecto                 String
+  area                     String
+  responsable              String
+  correoResponsable        String
+
+  informacionServicio      Json?
+
+  accionesRealizadas       String
+  observaciones            String
+  descripcionEntregables   String
+
+  // Relaciones para las firmas
+  usuarioId                Int
+  ingenieroId              Int
+
+  usuario                  User     @relation("UsuarioReporte", fields: [usuarioId], references: [id])
+  ingeniero                User     @relation("IngenieroReporte", fields: [ingenieroId], references: [id])
+  
+  // Relación con la Solicitud de Proyecto
+  solicitudId              Int      @unique
+  solicitud                SolicitudProyecto @relation(fields: [solicitudId], references: [id])
+
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
