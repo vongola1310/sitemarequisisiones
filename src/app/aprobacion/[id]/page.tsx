@@ -91,7 +91,7 @@ export default function AprobacionPage({ params }: { params: Promise<{ id: strin
   const userRole = session?.user?.role;
   const isGerente = userRole === 'gerente';
 
-  const handleAction = async (action: 'Aprobada' | 'Rechazada') => {
+    const handleAction = async (action: 'Aprobada' | 'Rechazada') => {
     setIsSubmitting(true);
     setMessage('');
 
@@ -108,7 +108,8 @@ export default function AprobacionPage({ params }: { params: Promise<{ id: strin
         throw new Error(`Error en el servidor: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      // Simplemente verificamos que la respuesta sea exitosa sin usar los datos
+      await response.json();
       setMessage(`¡Solicitud ${action} con éxito!`);
       router.push('/dashboard');
       

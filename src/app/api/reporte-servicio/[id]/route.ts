@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -54,7 +53,6 @@ export async function GET(
   }
 }
 
-
 // Crear reporte de servicio (Ingeniero)
 export async function POST(
   request: NextRequest,
@@ -83,6 +81,19 @@ export async function POST(
       );
     }
 
+    // Obtener el ID del ingeniero de manera segura
+    const ingenieroActual = await prisma.user.findUnique({
+      where: { email: session.user.email || "" },
+      select: { id: true },
+    });
+
+    if (!ingenieroActual) {
+      return NextResponse.json(
+        { message: "Usuario ingeniero no encontrado" },
+        { status: 404 }
+      );
+    }
+
     // Crear reporte
     const reporte = await prisma.reporteServicio.create({
       data: {
@@ -91,17 +102,14 @@ export async function POST(
         fechaEntrega: new Date(),
         proyecto: solicitud.proyectoDestino,
         area: solicitud.areaSolicitante,
-        responsable: session.user.name ?? "",
-        correoResponsable: session.user.email!,
+        responsable: session.user.name || "",
+        correoResponsable: session.user.email || "",
         informacionServicio: solicitud.productoSolicitado,
         accionesRealizadas,
         descripcionEntregables,
-        observaciones: observaciones ?? "",
+        observaciones: observaciones || "",
         usuarioId: solicitud.solicitanteId,
-        ingenieroId: (await prisma.user.findUnique({
-          where: { email: session.user.email ?? "" },
-          select: { id: true },
-        }))?.id!,
+        ingenieroId: ingenieroActual.id,
       },
     });
 

@@ -113,22 +113,22 @@ export async function PUT(
       return NextResponse.json({ message: 'Estado inválido' }, { status: 400 });
     }
 
-    // Preparar datos para actualizar
-    const datosActualizacion: any = {
+    // Preparar datos para actualizar usando el enfoque de construcción incremental
+    const datosParaActualizar = {
       status,
       comments: comments || solicitudExistente.comments,
     };
 
-    // Si se están enviando datos técnicos (cuando pasa de Pendiente a En Revisión)
+    // Agregar campos opcionales de manera condicional
     if (fechaEjecucion) {
-      datosActualizacion.fechaEntregaFinal = new Date(fechaEjecucion);
+      Object.assign(datosParaActualizar, { fechaEntregaFinal: new Date(fechaEjecucion) });
     }
     if (recursosNecesarios) {
       // Los recursos vienen como objeto completo desde el frontend
-      datosActualizacion.recursosNecesarios = recursosNecesarios;
+      Object.assign(datosParaActualizar, { recursosNecesarios: recursosNecesarios });
     }
     if (observaciones !== undefined) {
-      datosActualizacion.comments = observaciones;
+      Object.assign(datosParaActualizar, { comments: observaciones });
     }
 
     // Actualizar la solicitud
@@ -136,7 +136,7 @@ export async function PUT(
       where: {
         id: Number(resolvedParams.id),
       },
-      data: datosActualizacion,
+      data: datosParaActualizar,
     });
 
     return NextResponse.json({
